@@ -7,7 +7,9 @@ const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('users');
   const [users, setUsers] = useState([]);
   const [parcels, setParcels] = useState([]);
+  const [feedback, setFeedback] = useState([]);
   const [parcelStats, setParcelStats] = useState({});
+  const [feedbackStats, setFeedbackStats] = useState({});
   const [showAddParcelModal, setShowAddParcelModal] = useState(false);
   const [showUpdateParcelModal, setShowUpdateParcelModal] = useState(false);
   const [showTrackingModal, setShowTrackingModal] = useState(false);
@@ -46,6 +48,12 @@ const AdminDashboard = () => {
     
     // Load parcel statistics
     loadParcelStats();
+
+    // Load feedback
+    loadFeedback();
+
+    // Load feedback statistics
+    loadFeedbackStats();
   }, []);
 
   const loadParcels = () => {
@@ -57,6 +65,18 @@ const AdminDashboard = () => {
   const loadParcelStats = () => {
     axios.get('http://localhost:8080/api/parcels/stats')
       .then((res) => setParcelStats(res.data))
+      .catch((err) => console.error(err));
+  };
+
+  const loadFeedback = () => {
+    axios.get('http://localhost:8080/api/feedback/recent')
+      .then((res) => setFeedback(res.data))
+      .catch((err) => console.error(err));
+  };
+
+  const loadFeedbackStats = () => {
+    axios.get('http://localhost:8080/api/feedback/stats')
+      .then((res) => setFeedbackStats(res.data))
       .catch((err) => console.error(err));
   };
 
@@ -76,6 +96,21 @@ const AdminDashboard = () => {
           loadParcelStats();
         })
         .catch((err) => console.error(err));
+    }
+  };
+
+  const deleteFeedback = (id) => {
+    if (window.confirm("Are you sure you want to delete this feedback?")) {
+      axios.delete(`http://localhost:8080/api/feedback/delete/${id}`)
+        .then(() => {
+          loadFeedback();
+          loadFeedbackStats();
+          alert('Feedback deleted successfully!');
+        })
+        .catch((err) => {
+          console.error(err);
+          alert('Error deleting feedback');
+        });
     }
   };
 
@@ -184,6 +219,21 @@ const AdminDashboard = () => {
     return colors[status] || '#6b7280';
   };
 
+  const getRatingColor = (rating) => {
+    const colors = {
+      1: '#ef4444',
+      2: '#f97316',
+      3: '#f59e0b',
+      4: '#10b981',
+      5: '#059669'
+    };
+    return colors[rating] || '#6b7280';
+  };
+
+  const getRatingStars = (rating) => {
+    return '★'.repeat(rating) + '☆'.repeat(5 - rating);
+  };
+
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -210,6 +260,12 @@ const AdminDashboard = () => {
             onClick={() => setActiveTab('parcels')}
           >
             📦 Parcels
+          </button>
+          <button 
+            className={`tab-btn ${activeTab === 'feedback' ? 'active' : ''}`}
+            onClick={() => setActiveTab('feedback')}
+          >
+            ⭐ Feedback
           </button>
         </div>
       </div>
@@ -420,6 +476,114 @@ const AdminDashboard = () => {
                           <button 
                             className="action-btn delete-btn"
                             onClick={() => deleteParcel(parcel.id)}
+                          >
+                            🗑️ Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'feedback' && (
+        <div className="feedback-management">
+          <div className="stats-container">
+            <div className="stat-card">
+              <div className="stat-header">
+                <div className="stat-icon">⭐</div>
+                <h3 className="stat-title">Total Feedback</h3>
+              </div>
+              <p className="stat-value">{feedbackStats.totalFeedback || 0}</p>
+            </div>
+            <div className="stat-card">
+              <div className="stat-header">
+                <div className="stat-icon">😍</div>
+                <h3 className="stat-title">High Ratings (4-5)</h3>
+              </div>
+              <p className="stat-value">{feedbackStats.highRatingCount || 0}</p>
+            </div>
+            <div className="stat-card">
+              <div className="stat-header">
+                <div className="stat-icon">😞</div>
+                <h3 className="stat-title">Low Ratings (1-2)</h3>
+              </div>
+              <p className="stat-value">{feedbackStats.lowRatingCount || 0}</p>
+            </div>
+            <div className="stat-card">
+              <div className="stat-header">
+                <div className="stat-icon">🌟</div>
+                <h3 className="stat-title">5 Star Reviews</h3>
+              </div>
+              <p className="stat-value">{feedbackStats.rating5Count || 0}</p>
+            </div>
+          </div>
+
+          <div className="feedback-section">
+            <div className="section-header">
+              <h2 className="section-title">Recent Feedback</h2>
+              <p className="section-subtitle">Customer feedback and ratings for delivered parcels</p>
+            </div>
+
+            {feedback.length === 0 ? (
+              <div className="no-data">
+                <p>No feedback found.</p>
+              </div>
+            ) : (
+              <table className="data-table feedback-table">
+                <thead>
+                  <tr>
+                    <th>User</th>
+                    <th>Tracking ID</th>
+                    <th>Rating</th>
+                    <th>Remarks</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {feedback.map((fb) => (
+                    <tr key={fb.id}>
+                      <td>
+                        <div className="contact-info">
+                          <h4>{fb.userEmail}</h4>
+                        </div>
+                      </td>
+                      <td>
+                        <span className="tracking-id">{fb.trackingId}</span>
+                      </td>
+                      <td>
+                        <div className="rating-display">
+                          <span 
+                            className="rating-stars" 
+                            style={{ color: getRatingColor(fb.rating) }}
+                          >
+                            {getRatingStars(fb.rating)}
+                          </span>
+                          <span className="rating-number">({fb.rating}/5)</span>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="remarks-cell">
+                          {fb.remarks ? (
+                            <span className="remarks-text" title={fb.remarks}>
+                              {fb.remarks.length > 50 ? fb.remarks.substring(0, 50) + '...' : fb.remarks}
+                            </span>
+                          ) : (
+                            <span className="no-remarks">No remarks</span>
+                          )}
+                        </div>
+                      </td>
+                      <td>{formatDate(fb.createdAt)}</td>
+                      <td>
+                        <div className="action-buttons">
+                          <button 
+                            className="action-btn delete-btn"
+                            onClick={() => deleteFeedback(fb.id)}
                           >
                             🗑️ Delete
                           </button>
