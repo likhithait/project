@@ -21,7 +21,7 @@ public class ParcelController {
     @Autowired
     private NotificationService notificationService;
 
-    // ✅ Test email configuration
+    //  Test email configuration
     @PostMapping("/test-email")
     public ResponseEntity<?> testEmailConfiguration() {
         try {
@@ -33,7 +33,7 @@ public class ParcelController {
         }
     }
 
-    // ✅ Create a new parcel with enhanced logging
+    //  Create a new parcel with enhanced logging
     @PostMapping("/add")
     public ResponseEntity<?> addParcel(@RequestBody Parcel parcel) {
         System.out.println("=== PARCEL CREATION STARTED ===");
@@ -88,14 +88,14 @@ public class ParcelController {
         }
     }
 
-    // ✅ Get all parcels
+    // Get all parcels
     @GetMapping("/all")
     public ResponseEntity<List<Parcel>> getAllParcels() {
         List<Parcel> parcels = parcelRepository.findAll();
         return ResponseEntity.ok(parcels);
     }
 
-    // ✅ Get parcel by tracking ID
+    //  Get parcel by tracking ID
     @GetMapping("/track/{trackingId}")
     public ResponseEntity<?> trackParcel(@PathVariable String trackingId) {
         Optional<Parcel> parcel = parcelRepository.findByTrackingId(trackingId);
@@ -107,7 +107,7 @@ public class ParcelController {
         }
     }
 
-    // ✅ Update parcel details
+    //  Update parcel details
     @PutMapping("/update/{id}")
     public ResponseEntity<?> updateParcel(@PathVariable Long id, @RequestBody Parcel updatedParcel) {
         return parcelRepository.findById(id).map(parcel -> {
@@ -151,7 +151,7 @@ public class ParcelController {
         }).orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).body("Parcel not found!"));
     }
 
-    // ✅ Update parcel status only
+    //  Update parcel status only
     @PutMapping("/status/{id}")
     public ResponseEntity<?> updateParcelStatus(@PathVariable Long id, @RequestBody Map<String, String> statusUpdate) {
         return parcelRepository.findById(id).map(parcel -> {
@@ -178,7 +178,7 @@ public class ParcelController {
         }).orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).body("Parcel not found!"));
     }
 
-    // ✅ Delete parcel
+    //  Delete parcel
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<String> deleteParcel(@PathVariable Long id) {
         if (!parcelRepository.existsById(id)) {
@@ -188,21 +188,21 @@ public class ParcelController {
         return ResponseEntity.ok("Parcel deleted successfully!");
     }
 
-    // ✅ Get parcels by user email (sender or recipient)
+    //  Get parcels by user email (sender or recipient)
     @GetMapping("/user/{email}")
     public ResponseEntity<List<Parcel>> getParcelsByUserEmail(@PathVariable String email) {
         List<Parcel> parcels = parcelRepository.findByUserEmail(email);
         return ResponseEntity.ok(parcels);
     }
 
-    // ✅ Get parcels by status
+    //  Get parcels by status
     @GetMapping("/status/{status}")
     public ResponseEntity<List<Parcel>> getParcelsByStatus(@PathVariable String status) {
         List<Parcel> parcels = parcelRepository.findByStatus(status);
         return ResponseEntity.ok(parcels);
     }
 
-    // ✅ Get parcel statistics
+    // Get parcel statistics
     @GetMapping("/stats")
     public ResponseEntity<Map<String, Object>> getParcelStats() {
         Map<String, Object> stats = new HashMap<>();
@@ -217,7 +217,7 @@ public class ParcelController {
         return ResponseEntity.ok(stats);
     }
 
-    // ✅ Get recent parcels
+    //  Get recent parcels
     @GetMapping("/recent")
     public ResponseEntity<List<Parcel>> getRecentParcels() {
         List<Parcel> recentParcels = parcelRepository.findRecentParcels();

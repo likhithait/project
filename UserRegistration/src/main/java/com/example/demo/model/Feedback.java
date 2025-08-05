@@ -1,139 +1,129 @@
 package com.example.demo.model;
 
+import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.time.LocalDateTime;
 
-/**
- * Feedback model for handling user feedback submissions
- * This is a simple DTO (Data Transfer Object) for feedback data
- */
+@Entity
+@Table(name = "parcel_feedback")
 public class Feedback {
-    
-    private String name;
-    private String email;
-    private String phone; // Optional field
-    private String subject;
-    private String message;
-    private String feedbackType; // SUGGESTION, COMPLAINT, COMPLIMENT, QUESTION, etc.
-    private String priority; // LOW, MEDIUM, HIGH
-    private LocalDateTime submittedAt;
-    
-    // Default constructor
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false)
+    private String userEmail; // Email of the user giving feedback
+
+    @Column(nullable = false)
+    private String trackingId; // Tracking ID of the delivered parcel
+
+    @Column(nullable = false)
+    private Integer rating; // Rating from 1 to 5
+
+    @Column(length = 1000)
+    private String remarks; // Optional feedback remarks
+
+    @Column(nullable = false)
+    private LocalDateTime createdAt;
+
+    // Many-to-one relationship with Parcel (optional for reference)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parcel_id")
+    @JsonIgnore // Prevent infinite recursion in JSON serialization
+    private Parcel parcel;
+
+    // Constructors
     public Feedback() {
-        this.submittedAt = LocalDateTime.now();
-        this.priority = "MEDIUM"; // Default priority
+        this.createdAt = LocalDateTime.now();
     }
-    
-    // Constructor with required fields
-    public Feedback(String name, String email, String subject, String message) {
+
+    public Feedback(String userEmail, String trackingId, Integer rating, String remarks) {
         this();
-        this.name = name;
-        this.email = email;
-        this.subject = subject;
-        this.message = message;
+        this.userEmail = userEmail;
+        this.trackingId = trackingId;
+        this.rating = rating;
+        this.remarks = remarks;
     }
-    
-    // Full constructor
-    public Feedback(String name, String email, String phone, String subject, 
-                   String message, String feedbackType, String priority) {
-        this();
-        this.name = name;
-        this.email = email;
-        this.phone = phone;
-        this.subject = subject;
-        this.message = message;
-        this.feedbackType = feedbackType;
-        this.priority = priority;
-    }
-    
+
     // Getters and Setters
-    public String getName() {
-        return name;
+    public Long getId() {
+        return id;
     }
-    
-    public void setName(String name) {
-        this.name = name;
+
+    public void setId(Long id) {
+        this.id = id;
     }
-    
-    public String getEmail() {
-        return email;
+
+    public String getUserEmail() {
+        return userEmail;
     }
-    
-    public void setEmail(String email) {
-        this.email = email;
+
+    public void setUserEmail(String userEmail) {
+        this.userEmail = userEmail;
     }
-    
-    public String getPhone() {
-        return phone;
+
+    public String getTrackingId() {
+        return trackingId;
     }
-    
-    public void setPhone(String phone) {
-        this.phone = phone;
+
+    public void setTrackingId(String trackingId) {
+        this.trackingId = trackingId;
     }
-    
-    public String getSubject() {
-        return subject;
+
+    public Integer getRating() {
+        return rating;
     }
-    
-    public void setSubject(String subject) {
-        this.subject = subject;
+
+    public void setRating(Integer rating) {
+        this.rating = rating;
     }
-    
-    public String getMessage() {
-        return message;
+
+    public String getRemarks() {
+        return remarks;
     }
-    
-    public void setMessage(String message) {
-        this.message = message;
+
+    public void setRemarks(String remarks) {
+        this.remarks = remarks;
     }
-    
-    public String getFeedbackType() {
-        return feedbackType;
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
     }
-    
-    public void setFeedbackType(String feedbackType) {
-        this.feedbackType = feedbackType;
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
     }
-    
-    public String getPriority() {
-        return priority;
+
+    public Parcel getParcel() {
+        return parcel;
     }
-    
-    public void setPriority(String priority) {
-        this.priority = priority;
+
+    public void setParcel(Parcel parcel) {
+        this.parcel = parcel;
     }
-    
-    public LocalDateTime getSubmittedAt() {
-        return submittedAt;
-    }
-    
-    public void setSubmittedAt(LocalDateTime submittedAt) {
-        this.submittedAt = submittedAt;
-    }
-    
+
     // Utility methods
-    public boolean isHighPriority() {
-        return "HIGH".equalsIgnoreCase(this.priority);
+    public boolean isHighRating() {
+        return rating != null && rating >= 4;
     }
-    
-    public boolean isComplaint() {
-        return "COMPLAINT".equalsIgnoreCase(this.feedbackType);
+
+    public boolean isLowRating() {
+        return rating != null && rating <= 2;
     }
-    
-    public boolean hasPhoneNumber() {
-        return phone != null && !phone.trim().isEmpty();
+
+    public boolean hasRemarks() {
+        return remarks != null && !remarks.trim().isEmpty();
     }
-    
+
     @Override
     public String toString() {
         return "Feedback{" +
-                "name='" + name + '\'' +
-                ", email='" + email + '\'' +
-                ", phone='" + phone + '\'' +
-                ", subject='" + subject + '\'' +
-                ", feedbackType='" + feedbackType + '\'' +
-                ", priority='" + priority + '\'' +
-                ", submittedAt=" + submittedAt +
-                ", messageLength=" + (message != null ? message.length() : 0) + " chars" +
+                "id=" + id +
+                ", userEmail='" + userEmail + '\'' +
+                ", trackingId='" + trackingId + '\'' +
+                ", rating=" + rating +
+                ", createdAt=" + createdAt +
                 '}';
     }
 }

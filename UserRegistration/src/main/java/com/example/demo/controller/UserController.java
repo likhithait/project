@@ -11,13 +11,12 @@ import java.util.*;
 
 @RestController
 @RequestMapping("/api/users")
-@CrossOrigin(origins = "*") // In production, restrict this to your frontend domain
+@CrossOrigin(origins = "*") 
 public class UserController {
 
     @Autowired
     private UserRepository userRepository;
 
-    // ✅ Register a new user
     @PostMapping("/register")
     public ResponseEntity<String> registerUser(@RequestBody User user) {
         if (userRepository.existsByEmail(user.getEmail())) {
@@ -32,7 +31,6 @@ public class UserController {
         return ResponseEntity.ok("User registered successfully!");
     }
 
-    // ✅ Login for user and admin
     @PostMapping("/login")
     public ResponseEntity<?> loginUser(@RequestBody User user) {
         String adminEmail = "sahithachunduri0@gmail.com";
@@ -53,14 +51,12 @@ public class UserController {
         }
     }
 
-    // ✅ Get all users
     @GetMapping("/all")
     public ResponseEntity<List<User>> getAllUsers() {
         List<User> users = userRepository.findAll();
         return ResponseEntity.ok(users);
     }
 
-    // ✅ Delete a user by ID
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<String> deleteUser(@PathVariable Long id) {
         if (!userRepository.existsById(id)) {
@@ -70,7 +66,6 @@ public class UserController {
         return ResponseEntity.ok("User deleted successfully!");
     }
 
-    // ✅ Update user (original endpoint)
     @PutMapping("/update/{id}")
     public ResponseEntity<?> updateUser(@PathVariable Long id, @RequestBody User updatedUser) {
         return userRepository.findById(id).map(user -> {
@@ -84,7 +79,7 @@ public class UserController {
         }).orElse(ResponseEntity.badRequest().body("User not found!"));
     }
 
-    // ✅ Update user (Admin Dashboard specific endpoint)
+
     @PutMapping("/admin/user/{id}")
     public ResponseEntity<?> updateUserFromAdmin(@PathVariable Long id, @RequestBody User updatedUser) {
         Optional<User> existingOpt = userRepository.findById(id);
@@ -103,7 +98,7 @@ public class UserController {
         return ResponseEntity.ok("User updated successfully from admin!");
     }
 
-    // ✅ Forgot password
+    
     @PutMapping("/forgot-password")
     public ResponseEntity<String> forgotPassword(@RequestParam String email, @RequestParam String newPassword) {
         User user = userRepository.findByEmail(email);
