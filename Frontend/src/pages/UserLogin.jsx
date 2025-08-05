@@ -16,6 +16,11 @@ function UserLogin() {
     try {
       const res = await loginUser(credentials);
       console.log("Login response:", res.data);
+      localStorage.setItem('userInfo', JSON.stringify({
+      email: credentials.email,
+      name: res.data.name, // if backend returns name
+      phone: res.data.phone // if backend returns phone
+    }));
       alert("Login successful"); 
       nav('/user/dashboard'); 
     } catch (err) {

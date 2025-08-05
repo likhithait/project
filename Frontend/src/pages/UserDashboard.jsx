@@ -1,12 +1,24 @@
 import React, { useState } from 'react';
 import './UserDashboard.css';
-import { FiSearch, FiPackage, FiMapPin, FiClock, FiUser } from 'react-icons/fi';
+import { FiSearch, FiPackage, FiMapPin, FiClock, FiUser, FiMessageSquare, FiSend, FiX } from 'react-icons/fi';
 
 const UserDashboard = () => {
   const [trackingId, setTrackingId] = useState('');
   const [parcelData, setParcelData] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  // Simplified feedback form state - only message needed
+  const [feedbackMessage, setFeedbackMessage] = useState('');
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
+  const [feedbackSuccess, setFeedbackSuccess] = useState(false);
+  const [feedbackError, setFeedbackError] = useState(null);
+
+  // User parcels modal state
+  const [showParcelsModal, setShowParcelsModal] = useState(false);
+  const [userParcels, setUserParcels] = useState([]);
+  const [parcelsLoading, setParcelsLoading] = useState(false);
+  const [parcelsError, setParcelsError] = useState(null);
 
   const handleTrackParcel = async () => {
     if (!trackingId.trim()) {
@@ -30,6 +42,90 @@ const UserDashboard = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleViewParcels = async () => {
+    // Get user email from localStorage - using fallback for demo
+    const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{"email": "demo@example.com"}');
+    const userEmail = userInfo.email;
+
+    if (!userEmail) {
+      setParcelsError('User email not found. Please login again.');
+      return;
+    }
+
+    setParcelsLoading(true);
+    setParcelsError(null);
+    setShowParcelsModal(true);
+
+    try {
+      const response = await fetch(`http://localhost:8080/api/parcels/user/${userEmail}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch parcels');
+      }
+      const data = await response.json();
+      setUserParcels(data);
+    } catch (error) {
+      setParcelsError(error.message);
+      setUserParcels([]);
+    } finally {
+      setParcelsLoading(false);
+    }
+  };
+
+  const handleFeedbackSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!feedbackMessage.trim()) {
+      setFeedbackError('Please enter your feedback message');
+      return;
+    }
+
+    // Get user info from localStorage - Note: This won't work in Claude artifacts
+    // In your actual app, this will work fine
+    const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
+    
+    // Prepare feedback data with localStorage info and defaults
+    const feedbackData = {
+      name: userInfo.name || 'Anonymous User',
+      email: userInfo.email || 'anonymous@example.com',
+      phone: userInfo.phone || '',
+      subject: 'User Feedback',
+      message: feedbackMessage,
+      feedbackType: 'GENERAL',
+      priority: 'MEDIUM'
+    };
+
+    setFeedbackLoading(true);
+    setFeedbackError(null);
+    setFeedbackSuccess(false);
+
+    try {
+      const response = await fetch('http://localhost:8080/api/feedback/submit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(feedbackData)
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to submit feedback');
+      }
+
+      setFeedbackSuccess(true);
+      setFeedbackMessage('');
+    } catch (error) {
+      setFeedbackError(error.message);
+    } finally {
+      setFeedbackLoading(false);
+    }
+  };
+
+  const closeModal = () => {
+    setShowParcelsModal(false);
+    setUserParcels([]);
+    setParcelsError(null);
   };
 
   const getStatusColor = (status) => {
@@ -84,6 +180,53 @@ const UserDashboard = () => {
             {loading ? 'Tracking...' : 'Track'}
           </button>
         </div>
+      </div>
+
+      {/* Updated Feedback Container with similar structure to tracking input */}
+      <div className="tracking-card">
+        <div className="card-header">
+          <FiMessageSquare className="header-icon" />
+          <h2>Submit Feedback</h2>
+        </div>
+        <div className="tracking-input-container">
+          <form onSubmit={handleFeedbackSubmit} className="feedback-form">
+            <textarea
+              placeholder="Share your feedback, suggestions, or report any issues..."
+              value={feedbackMessage}
+              onChange={(e) => {
+                setFeedbackMessage(e.target.value);
+                setFeedbackError(null);
+                setFeedbackSuccess(false);
+              }}
+              className="feedback-textarea"
+              required
+            />
+            <button 
+              type="submit" 
+              className="feedback-submit-button"
+              disabled={feedbackLoading}
+            >
+              <FiSend />
+              {feedbackLoading ? 'Submitting...' : 'Submit Feedback'}
+            </button>
+          </form>
+        </div>
+
+        {feedbackSuccess && (
+          <div className="success-card">
+            <div className="success-content">
+              <strong>Success:</strong> Your feedback has been submitted successfully!
+            </div>
+          </div>
+        )}
+
+        {feedbackError && (
+          <div className="error-card">
+            <div className="error-content">
+              <strong>Error:</strong> {feedbackError}
+            </div>
+          </div>
+        )}
       </div>
 
       {error && (
@@ -229,7 +372,7 @@ const UserDashboard = () => {
       )}
 
       <div className="quick-actions">
-        <div className="quick-action-card">
+        <div className="quick-action-card" onClick={handleViewParcels}>
           <FiPackage className="action-icon" />
           <h3>View All Parcels</h3>
           <p>See all your shipments in one place</p>
@@ -239,12 +382,88 @@ const UserDashboard = () => {
           <h3>Update Profile</h3>
           <p>Manage your account settings</p>
         </div>
-        <div className="quick-action-card">
-          <FiMapPin className="action-icon" />
-          <h3>Contact Support</h3>
-          <p>Get help with your shipments</p>
-        </div>
       </div>
+
+      {/* User Parcels Modal */}
+      {showParcelsModal && (
+        <div className="modal-overlay" onClick={closeModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Your Parcels</h2>
+              <button className="close-button" onClick={closeModal}>
+                <FiX />
+              </button>
+            </div>
+            
+            <div className="modal-body">
+              {parcelsLoading && (
+                <div className="loading-message">
+                  <FiPackage className="loading-icon" />
+                  Loading your parcels...
+                </div>
+              )}
+
+              {parcelsError && (
+                <div className="error-message">
+                  <strong>Error:</strong> {parcelsError}
+                </div>
+              )}
+
+              {!parcelsLoading && !parcelsError && userParcels.length === 0 && (
+                <div className="no-parcels-message">
+                  <FiPackage className="no-parcels-icon" />
+                  <p>No parcels found for your account.</p>
+                </div>
+              )}
+
+              {!parcelsLoading && userParcels.length > 0 && (
+                <div className="parcels-list">
+                  {userParcels.map((parcel) => (
+                    <div key={parcel.id} className="parcel-item">
+                      <div className="parcel-item-header">
+                        <div className="tracking-info">
+                          <strong>Tracking ID:</strong> {parcel.trackingId}
+                        </div>
+                        <div 
+                          className="status-badge-small"
+                          style={{ backgroundColor: getStatusColor(parcel.status) }}
+                        >
+                          {parcel.status.replace(/_/g, ' ')}
+                        </div>
+                      </div>
+                      
+                      <div className="parcel-item-details">
+                        <div className="detail-row">
+                          <span className="detail-label">Sender:</span>
+                          <span className="detail-value">{parcel.senderName}</span>
+                        </div>
+                        <div className="detail-row">
+                          <span className="detail-label">Recipient:</span>
+                          <span className="detail-value">{parcel.recipientName}</span>
+                        </div>
+                        <div className="detail-row">
+                          <span className="detail-label">Description:</span>
+                          <span className="detail-value">{parcel.description}</span>
+                        </div>
+                        <div className="detail-row">
+                          <span className="detail-label">Created:</span>
+                          <span className="detail-value">{formatDate(parcel.createdAt)}</span>
+                        </div>
+                        {parcel.currentLocation && (
+                          <div className="detail-row">
+                            <span className="detail-label">Current Location:</span>
+                            <span className="detail-value">{parcel.currentLocation}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
