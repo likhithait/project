@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FiSearch, FiPackage, FiMapPin, FiClock, FiUser, FiMessageSquare, FiSend, FiX, FiStar, FiTruck, FiCheckCircle, FiAlertCircle } from 'react-icons/fi';
+import { FiSearch, FiPackage, FiMapPin, FiClock, FiUser, FiMessageSquare, FiSend, FiX, FiStar, FiTruck, FiCheckCircle, FiAlertCircle, FiHelpCircle } from 'react-icons/fi';
 import './UserDashboard.css';
 
 const UserDashboard = () => {
@@ -28,9 +28,33 @@ const UserDashboard = () => {
   const [feedbackError, setFeedbackError] = useState(null);
   const [feedbackSuccess, setFeedbackSuccess] = useState(false);
 
+  // Support modal state
+  const [showSupportModal, setShowSupportModal] = useState(false);
+  const [supportData, setSupportData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    subject: '',
+    message: '',
+    issueType: 'GENERAL',
+    priority: 'MEDIUM',
+    trackingId: ''
+  });
+  const [supportLoading, setSupportLoading] = useState(false);
+  const [supportError, setSupportError] = useState(null);
+  const [supportSuccess, setSupportSuccess] = useState(false);
+
   // Add fade-in animation on component mount
   useEffect(() => {
     setIsVisible(true);
+    // Pre-fill user info for support
+    const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
+    setSupportData(prev => ({
+      ...prev,
+      name: userInfo.name || '',
+      email: userInfo.email || '',
+      phone: userInfo.phone || ''
+    }));
   }, []);
 
   const handleTrackParcel = async () => {
@@ -162,6 +186,50 @@ const UserDashboard = () => {
     }
   };
 
+  // Support Functions
+  const handleShowSupport = () => {
+    setSupportError(null);
+    setSupportSuccess(false);
+    setShowSupportModal(true);
+  };
+
+  const handleSupportSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!supportData.name.trim() || !supportData.email.trim() || !supportData.message.trim()) {
+      setSupportError('Please fill in all required fields');
+      return;
+    }
+
+    setSupportLoading(true);
+    setSupportError(null);
+
+    try {
+      const response = await fetch('http://localhost:8080/api/support/submit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(supportData)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        throw new Error(errorData || 'Failed to submit support request');
+      }
+
+      setSupportSuccess(true);
+      setTimeout(() => {
+        closeSupportModal();
+      }, 3000);
+
+    } catch (error) {
+      setSupportError(error.message);
+    } finally {
+      setSupportLoading(false);
+    }
+  };
+
   const closeParcelsModal = () => {
     setShowParcelsModal(false);
     setUserParcels([]);
@@ -174,6 +242,20 @@ const UserDashboard = () => {
     setFeedbackData({ rating: 0, remarks: '' });
     setFeedbackError(null);
     setFeedbackSuccess(false);
+  };
+
+  const closeSupportModal = () => {
+    setShowSupportModal(false);
+    setSupportData(prev => ({
+      ...prev,
+      subject: '',
+      message: '',
+      issueType: 'GENERAL',
+      priority: 'MEDIUM',
+      trackingId: ''
+    }));
+    setSupportError(null);
+    setSupportSuccess(false);
   };
 
   const getStatusColor = (status) => {
@@ -378,7 +460,7 @@ const UserDashboard = () => {
               <FiUser />
             </div>
           </div>
-          <div className="action-card">
+          <div className="action-card" onClick={handleShowSupport}>
             <FiMessageSquare className="action-icon support-icon" />
             <h3>Support Center</h3>
             <p>Get help with your shipments</p>
@@ -548,6 +630,161 @@ const UserDashboard = () => {
                     >
                       <FiSend />
                       {feedbackLoading ? 'Submitting...' : 'Submit Feedback'}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Support Modal */}
+        {showSupportModal && (
+          <div className="modal-overlay" onClick={closeSupportModal}>
+            <div className="support-modal animate-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h2><FiHelpCircle className="modal-icon" /> Contact Support</h2>
+                <button onClick={closeSupportModal} className="close-button">
+                  <FiX />
+                </button>
+              </div>
+
+              {supportSuccess ? (
+                <div className="success-container">
+                  <FiCheckCircle className="success-icon" />
+                  <h3>Support Request Submitted!</h3>
+                  <p>We've received your request and will get back to you soon.</p>
+                  <p>You'll receive a confirmation email shortly.</p>
+                </div>
+              ) : (
+                <form onSubmit={handleSupportSubmit} className="support-form">
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Name *</label>
+                      <input
+                        type="text"
+                        value={supportData.name}
+                        onChange={(e) => setSupportData({...supportData, name: e.target.value})}
+                        placeholder="Your full name"
+                        required
+                        className="form-input"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Email *</label>
+                      <input
+                        type="email"
+                        value={supportData.email}
+                        onChange={(e) => setSupportData({...supportData, email: e.target.value})}
+                        placeholder="your@email.com"
+                        required
+                        className="form-input"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Phone (Optional)</label>
+                      <input
+                        type="tel"
+                        value={supportData.phone}
+                        onChange={(e) => setSupportData({...supportData, phone: e.target.value})}
+                        placeholder="Your phone number"
+                        className="form-input"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Tracking ID (Optional)</label>
+                      <input
+                        type="text"
+                        value={supportData.trackingId}
+                        onChange={(e) => setSupportData({...supportData, trackingId: e.target.value})}
+                        placeholder="Related tracking ID"
+                        className="form-input"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Issue Type</label>
+                      <select
+                        value={supportData.issueType}
+                        onChange={(e) => setSupportData({...supportData, issueType: e.target.value})}
+                        className="form-select"
+                      >
+                        <option value="GENERAL">General Inquiry</option>
+                        <option value="TRACKING_ISSUE">Tracking Issue</option>
+                        <option value="DELIVERY_PROBLEM">Delivery Problem</option>
+                        <option value="BILLING_QUESTION">Billing Question</option>
+                        <option value="TECHNICAL_ISSUE">Technical Issue</option>
+                        <option value="ACCOUNT_HELP">Account Help</option>
+                        <option value="COMPLAINT">Complaint</option>
+                        <option value="SUGGESTION">Suggestion</option>
+                        <option value="OTHER">Other</option>
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label>Priority</label>
+                      <select
+                        value={supportData.priority}
+                        onChange={(e) => setSupportData({...supportData, priority: e.target.value})}
+                        className="form-select"
+                      >
+                        <option value="LOW">Low</option>
+                        <option value="MEDIUM">Medium</option>
+                        <option value="HIGH">High</option>
+                        <option value="URGENT">Urgent</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Subject (Optional)</label>
+                    <input
+                      type="text"
+                      value={supportData.subject}
+                      onChange={(e) => setSupportData({...supportData, subject: e.target.value})}
+                      placeholder="Brief description of your issue"
+                      className="form-input"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Message *</label>
+                    <textarea
+                      value={supportData.message}
+                      onChange={(e) => setSupportData({...supportData, message: e.target.value})}
+                      placeholder="Please describe your issue or question in detail..."
+                      rows={5}
+                      required
+                      className="form-textarea"
+                    />
+                  </div>
+
+                  {supportError && (
+                    <div className="error-container">
+                      <FiAlertCircle className="error-icon" />
+                      <span>{supportError}</span>
+                    </div>
+                  )}
+
+                  <div className="support-actions">
+                    <button
+                      type="button"
+                      onClick={closeSupportModal}
+                      className="cancel-button"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={supportLoading}
+                      className="submit-button"
+                    >
+                      <FiSend />
+                      {supportLoading ? 'Sending...' : 'Send Request'}
                     </button>
                   </div>
                 </form>
